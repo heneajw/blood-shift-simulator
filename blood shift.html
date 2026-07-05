@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>혈액 보상 시뮬레이터 (전체 체적 변화 반영)</title>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; font-family: sans-serif; padding: 20px; }
+        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+        canvas { border: 1px solid #ddd; background: #fafafa; margin-bottom: 20px; }
+        .controls { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>혈액 보상(Blood Shift) 시뮬레이터</h2>
+    <canvas id="canvas" width="400" height="350"></canvas>
+    
+    <div class="controls">
+        <input type="range" id="depthSlider" min="0" max="100" step="1" value="0" style="width: 300px;">
+        <div>
+            <label>수심 입력 (0 ~ -100m): </label>
+            <input type="number" id="depthInput" value="0" min="0" max="100">
+        </div>
+        <p>현재 수심: <span id="depthVal">0</span>m</p>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const slider = document.getElementById('depthSlider');
+    const input = document.getElementById('depthInput');
+    const depthVal = document.getElementById('depthVal');
+
+    function draw(depth) {
+        ctx.clearRect(0, 0, 400, 350);
+        const atm = 1 + (depth / 10);
+        
+        // 1. 폐포 내 공기 (급격한 감소)
+        const coreRadius = 80 * Math.sqrt(1 / atm);
+        // 2. 전체 흉곽 (완만한 감소 - 혈액 보상 효과)
+        const totalRadius = 100 * Math.pow(1 / atm, 0.05); 
+        
+        const centerX = 250, centerY = 175;
+
+        // 좌측 수심 눈금
+        ctx.strokeStyle = '#333';
+        ctx.beginPath();
+        ctx.moveTo(50, 50); ctx.lineTo(50, 300); ctx.stroke();
+        for(let i=0; i<=10; i++) {
+            let y = 50 + (i * 25);
+            ctx.moveTo(40, y); ctx.lineTo(60, y); ctx.stroke();
+            ctx.fillText(-(i * 10) + "m", 10, y + 5);
+        }
+        let indicatorY = 50 + (depth / 100 * 250);
+        ctx.fillStyle = 'blue';
+        ctx.beginPath(); ctx.moveTo(65, indicatorY); ctx.lineTo(75, indicatorY - 5); ctx.lineTo(75, indicatorY + 5);
+        ctx.fill();
+
+        // 전체 흉곽 (빨간색 혈관 조직)
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath(); ctx.arc(centerX, centerY, totalRadius, 0, Math.PI * 2); ctx.fill();
+        
+        // 폐포 공기 (노란색)
+        ctx.fillStyle = '#f1c40f';
+        ctx.beginPath(); ctx.arc(centerX, centerY, coreRadius, 0, Math.PI * 2); ctx.fill();
+
+        // 수치 표시
+        ctx.fillStyle = "black";
+        ctx.font = "bold 14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("공기:" + (100/atm).toFixed(1) + "%", centerX, centerY + 5);
+
+        depthVal.innerText = -depth;
+    }
+
+    slider.addEventListener('input', (e) => { input.value = e.target.value; draw(parseInt(e.target.value)); });
+    input.addEventListener('input', (e) => { 
+        let val = parseInt(e.target.value) || 0;
+        slider.value = val; draw(val); 
+    });
+
+    draw(0);
+</script>
+</body>
+</html>
